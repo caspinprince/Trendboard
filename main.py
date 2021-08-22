@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-import numpy as np
 import pandas as pd
 import dash
 import dash_core_components as dcc
@@ -50,6 +49,8 @@ def getData(numResults: int):
     return df
 
 df = getData(50)
+plotType = {'Scatterplot': ['Views', 'Likes', 'Dislikes', 'Comments', 'Trending Rank'],
+            'Barplot': ['Title', 'Channel', 'Category ID']}
 
 app.layout = html.Div(
     children=[
@@ -67,13 +68,25 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
+                        html.Div(children="Graph Type", className="menu-title"),
+                        dcc.Dropdown(
+                            id="graph-type",
+                            options=[
+                                {"label": graphType, "value": graphType}
+                                for graphType in plotType
+                            ],
+                            value="Scatterplot",
+                            clearable=False,
+                            className="dropdown",
+                        ),
+                    ],
+                    className="menu-item"
+                ),
+                html.Div(
+                    children=[
                         html.Div(children="X-Axis", className="menu-title"),
                         dcc.Dropdown(
                             id="x-axis",
-                            options=[
-                                {"label": x_stat, "value": x_stat}
-                                for x_stat in df.columns
-                            ],
                             value="Likes",
                             clearable=False,
                             className="dropdown",
@@ -86,13 +99,13 @@ app.layout = html.Div(
                         html.Div(children="Y-Axis", className="menu-title"),
                         dcc.Dropdown(
                             id="y-axis",
-                            options=[
-                                {"label": y_stat, "value": y_stat}
-                                for y_stat in df.columns
-                            ],
                             value="Views",
                             clearable=False,
                             className="dropdown",
+                            options = [
+                                {"label": stat, "value": stat}
+                                for stat in df.columns[6:]
+                            ]
                         ),
                     ],
                     className="menu-item"
@@ -117,6 +130,7 @@ app.layout = html.Div(
                     children=[
                         html.Button('Refresh', id='refresh', n_clicks=0, className="button"),
                     ],
+                    className="menu-item"
                 ),
             ],
             className="menu",
@@ -134,6 +148,16 @@ app.layout = html.Div(
         ),
     ]
 )
+@app.callback(
+    Output("x-axis", "options"),
+    Input("graph-type", "value"),
+)
+def set_options(graph_type):
+    options = [
+        {"label": stat, "value": stat}
+        for stat in plotType[graph_type]
+    ]
+    return options
 
 @app.callback(
     Output("chart", "figure"),
@@ -142,12 +166,17 @@ app.layout = html.Div(
         State("x-axis", "value"),
         State("y-axis", "value"),
         State("numvideos", "value"),
+        State("graph-type", "value"),
     ],
 )
-def update_charts(n_clicks, x_stat, y_stat, numvideos):
+def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
     df = getData(numvideos)
-    chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
-                       hover_name='Title', hover_data=['Channel'], color='Trending Rank')
+    if graph_type == 'Scatterplot':
+        chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
+                           hover_name='Title', hover_data=['Channel'], color='Trending Rank', height=800)
+    else:
+        chart = px.bar(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
+                       hover_name='Title', hover_data=['Channel'], height=800)
     return chart
 
 
