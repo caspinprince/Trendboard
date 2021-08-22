@@ -10,18 +10,12 @@ body {
     padding: 16px 0 0 0;
 }
 
-.header-emoji {
-    font-size: 48px;
-    margin: 0 auto;
-    text-align: center;
-}
-
 .header-title {
     color: #FFFFFF;
     font-size: 48px;
     font-weight: bold;
     text-align: center;
-    margin: 0 auto;
+    margin: 20px auto;
 }
 
 .header-description {
@@ -73,4 +67,30 @@ body {
     margin-bottom: 6px;
     font-weight: bold;
     color: #079A82;
+}
+
+.button {
+    background-color: transparent;
+    border: 2px solid #079A82;
+    color: #079A82;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 22px 0 0 50px;
+}
+
+.button:hover {
+    background-color: #079A82;
+    color: white;
+    outline: 0;
+}
+
+.menu-item {
+    padding: 0 10px;
+}
+
+.input-box {
+    padding: 13px;
 }

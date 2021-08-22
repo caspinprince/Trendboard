@@ -6,7 +6,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
 
 from googleapiclient.discovery import build
 
@@ -25,11 +25,11 @@ api_key = os.getenv('APIKEY')
 
 youtube = build('youtube', 'v3', developerKey=api_key)
 
-def getData():
+def getData(numResults: int):
     request = youtube.videos().list(
         part ='snippet, statistics',
         chart='mostPopular',
-        maxResults = 50,
+        maxResults = numResults,
         regionCode='CA'
     )
     response = request.execute()
@@ -41,17 +41,15 @@ def getData():
              'statistics.dislikeCount', 'statistics.commentCount']]
     df.columns = ['Publish Date', 'Title', 'Description', 'Channel',
                   'Tags', 'Category ID', 'Views', 'Likes', 'Dislikes', 'Comments']
-    df['Rank'] = df.index+1
+    df['Trending Rank'] = df.index+1
+    df = df.convert_dtypes()
+    df['Publish Date'] = pd.to_datetime(df['Publish Date'])
+    df[['Category ID', 'Views',
+        'Likes', 'Dislikes', 'Comments']] = df[['Category ID', 'Views',
+                                                'Likes', 'Dislikes', 'Comments']].apply(pd.to_numeric)
     return df
 
-
-df = getData()
-df = df.convert_dtypes()
-df['Publish Date'] = pd.to_datetime(df['Publish Date'])
-df[['Category ID', 'Views',
-    'Likes', 'Dislikes', 'Comments']] = df[['Category ID', 'Views',
-                                            'Likes', 'Dislikes', 'Comments']].apply(pd.to_numeric)
-
+df = getData(50)
 
 app.layout = html.Div(
     children=[
@@ -81,6 +79,7 @@ app.layout = html.Div(
                             className="dropdown",
                         ),
                     ],
+                    className="menu-item"
                 ),
                 html.Div(
                     children=[
@@ -95,6 +94,28 @@ app.layout = html.Div(
                             clearable=False,
                             className="dropdown",
                         ),
+                    ],
+                    className="menu-item"
+                ),
+                html.Div(
+                    children=[
+                        html.Div(children="Number of Videos", className="menu-title"),
+                        dcc.Input(
+                            id="numvideos",
+                            type="number",
+                            placeholder="(1-50)",
+                            min=1,
+                            max=50,
+                            step=1,
+                            value="50",
+                            className="input-box",
+                        ),
+                    ],
+                    className="menu-item"
+                ),
+                html.Div(
+                    children=[
+                        html.Button('Refresh', id='refresh', n_clicks=0, className="button"),
                     ],
                 ),
             ],
@@ -116,15 +137,19 @@ app.layout = html.Div(
 
 @app.callback(
     Output("chart", "figure"),
+    Input("refresh", "n_clicks"),
     [
-        Input("x-axis", "value"),
-        Input("y-axis", "value"),
+        State("x-axis", "value"),
+        State("y-axis", "value"),
+        State("numvideos", "value"),
     ],
 )
-def update_charts(x_stat, y_stat):
-    chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat}', hover_name='Title',
-                        hover_data=['Channel'], color='Rank')
+def update_charts(n_clicks, x_stat, y_stat, numvideos):
+    df = getData(numvideos)
+    chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
+                       hover_name='Title', hover_data=['Channel'], color='Trending Rank')
     return chart
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
