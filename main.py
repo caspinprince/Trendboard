@@ -1,13 +1,14 @@
-import os
-from dotenv import load_dotenv
 import pandas as pd
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
 from dash.dependencies import Output, Input, State
-
-from googleapiclient.discovery import build
+from io import BytesIO
+import base64
+from utilities.youtubedata import getData
+from wordcloud import WordCloud, STOPWORDS
+import numpy as np
 
 external_stylesheets = [
     {
@@ -19,38 +20,23 @@ external_stylesheets = [
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.title = "Youtube Stat Dashboard"
 
-load_dotenv()
-api_key = os.getenv('APIKEY')
-
-youtube = build('youtube', 'v3', developerKey=api_key)
-
-def getData(numResults: int):
-    request = youtube.videos().list(
-        part ='snippet, statistics',
-        chart='mostPopular',
-        maxResults = numResults,
-        regionCode='CA'
-    )
-    response = request.execute()
-    df = pd.json_normalize(response, 'items')
-    df = df[['snippet.publishedAt', 'snippet.title',
-             'snippet.description', 'snippet.channelTitle',
-             'snippet.tags', 'snippet.categoryId',
-             'statistics.viewCount', 'statistics.likeCount',
-             'statistics.dislikeCount', 'statistics.commentCount']]
-    df.columns = ['Publish Date', 'Video Title', 'Description', 'Channel',
-                  'Tags', 'Category ID', 'Views', 'Likes', 'Dislikes', 'Comments']
-    df['Trending Rank'] = df.index+1
-    df = df.convert_dtypes()
-    df['Publish Date'] = pd.to_datetime(df['Publish Date'])
-    df[['Category ID', 'Views',
-        'Likes', 'Dislikes', 'Comments']] = df[['Category ID', 'Views',
-                                                'Likes', 'Dislikes', 'Comments']].apply(pd.to_numeric)
-    return df
-
-df = getData(50)
 plotType = {'Scatterplot': ['Views', 'Likes', 'Dislikes', 'Comments', 'Trending Rank'],
-            'Barplot': ['Video Title', 'Channel', 'Category ID'], 'Countplot': ['Channel', 'Category ID']}
+            'Barplot': ['Video Title', 'Channel', 'Category ID'], 'Countplot': ['Channel', 'Category ID'], 'Wordcloud':[]}
+
+def get_wordcloud(data):
+    all_words = ""
+    for taglist in data['Tags']:
+        if type(taglist) == float:
+            continue
+        text = set()
+        for item in taglist:
+            for word in item.split():
+                if word.encode().isalnum():
+                    text.add(word)
+        for x in text:
+            all_words += x + " "
+    wordcloud = WordCloud(width=793, height=620, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
+    return wordcloud.to_image()
 
 app.layout = html.Div(
     children=[
@@ -104,7 +90,7 @@ app.layout = html.Div(
                             className="dropdown",
                             options = [
                                 {"label": stat, "value": stat}
-                                for stat in df.columns[6:]
+                                for stat in plotType['Scatterplot']
                             ],
                         ),
                     ],
@@ -138,9 +124,7 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.Div(
-                    children= dcc.Graph(
-                        id="chart"
-                    ),
+                    id="chart",
                     className="card",
                 ),
             ],
@@ -150,6 +134,7 @@ app.layout = html.Div(
 )
 @app.callback(
     [Output("x-axis", "options"),
+     Output("x-axis", "disabled"),
      Output("y-axis", "disabled"),
      Output("y-axis", "value")],
     Input("graph-type", "value"),
@@ -159,11 +144,17 @@ def set_options(graph_type):
         {"label": stat, "value": stat}
         for stat in plotType[graph_type]
     ]
-    disabled, value = (True, None) if graph_type == 'Countplot' else (False, 'Views')
-    return options, disabled, value
+    x_disabled, y_disabled, value = False, False, 'Views'
+    if graph_type == 'Countplot':
+        y_disabled = True
+        value = None
+    if graph_type == 'Wordcloud':
+        x_disabled, y_disabled = True, True
+        value = None
+    return options, x_disabled, y_disabled, value
 
 @app.callback(
-    Output("chart", "figure"),
+    Output("chart", "children"),
     Input("refresh", "n_clicks"),
     [
         State("x-axis", "value"),
@@ -173,18 +164,34 @@ def set_options(graph_type):
     ],
 )
 def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
-    df = getData(numvideos)
+    df = getData(50)
     if graph_type == 'Scatterplot':
-        chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
-                           hover_name='Video Title', hover_data=['Channel'], color='Trending Rank', height=800)
+        children = dcc.Graph(
+            figure = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
+                               hover_name='Video Title', hover_data=['Channel'], color='Trending Rank', height=800)
+        )
     elif graph_type == 'Countplot':
-        chart = px.bar(df, x=df[x_stat].unique(), y=df[x_stat].value_counts(),
-                       title = f'Number of Videos by {x_stat} for the Top {numvideos} Trending Videos on Youtube',
-                       height=800, labels={'x': x_stat, 'y': 'Videos'})
+        children = dcc.Graph(
+            figure = px.bar(df, x=df[x_stat].unique(), y=df[x_stat].value_counts(),
+                           title = f'Number of Videos by {x_stat} for the Top {numvideos} Trending Videos on Youtube',
+                           height=800, labels={'x': x_stat, 'y': 'Videos'})
+        )
+    elif graph_type == 'Barplot':
+        children = dcc.Graph(
+            figure = px.bar(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
+                           hover_name='Video Title', hover_data=['Channel'], height=800)
+        )
     else:
-        chart = px.bar(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
-                       hover_name='Video Title', hover_data=['Channel'], height=800)
-    return chart
+        img = BytesIO()
+        wordcloud = get_wordcloud(df)
+        wordcloud.save(img, format='PNG')
+        children = [
+            html.Img(
+                src='data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode()),
+                className="wrapper",
+            ),
+        ]
+    return children
 
 
 if __name__ == "__main__":
