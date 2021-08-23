@@ -35,7 +35,7 @@ def get_wordcloud(data):
                     text.add(word)
         for x in text:
             all_words += x + " "
-    wordcloud = WordCloud(width=793, height=620, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
+    wordcloud = WordCloud(width=1024, height=700, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
     return wordcloud.to_image()
 
 app.layout = html.Div(
@@ -144,14 +144,14 @@ def set_options(graph_type):
         {"label": stat, "value": stat}
         for stat in plotType[graph_type]
     ]
-    x_disabled, y_disabled, value = False, False, 'Views'
+    x_disabled, y_disabled, y_value = False, False, 'Views'
     if graph_type == 'Countplot':
         y_disabled = True
-        value = None
+        y_value = None
     if graph_type == 'Wordcloud':
         x_disabled, y_disabled = True, True
-        value = None
-    return options, x_disabled, y_disabled, value
+        y_value = None
+    return options, x_disabled, y_disabled, y_value
 
 @app.callback(
     Output("chart", "children"),
@@ -164,7 +164,7 @@ def set_options(graph_type):
     ],
 )
 def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
-    df = getData(50)
+    df = getData(numvideos)
     if graph_type == 'Scatterplot':
         children = dcc.Graph(
             figure = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
@@ -186,9 +186,9 @@ def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
         wordcloud = get_wordcloud(df)
         wordcloud.save(img, format='PNG')
         children = [
+            html.Div(f'Most Common Topics in the Top {numvideos} Trending Videos on Youtube', className="photo-title"),
             html.Img(
                 src='data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode()),
-                className="wrapper",
             ),
         ]
     return children
