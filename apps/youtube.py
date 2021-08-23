@@ -8,7 +8,7 @@ from io import BytesIO
 import base64
 from utilities.youtubedata import getData
 from wordcloud import WordCloud, STOPWORDS
-import numpy as np
+from app import app
 
 external_stylesheets = [
     {
@@ -17,8 +17,6 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
 ]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.title = "Youtube Stat Dashboard"
 
 plotType = {'Scatterplot': ['Views', 'Likes', 'Dislikes', 'Comments', 'Trending Rank'],
             'Barplot': ['Video Title', 'Channel', 'Category ID'], 'Countplot': ['Channel', 'Category ID'], 'Wordcloud':[]}
@@ -38,13 +36,13 @@ def get_wordcloud(data):
     wordcloud = WordCloud(width=1024, height=700, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
     return wordcloud.to_image()
 
-app.layout = html.Div(
+layout = html.Div(
     children=[
         html.Div(
             children=[
                 html.H1(children="Youtube Statistic Dashboard", className="header-title",),
                 html.P(
-                    children="Analyze statistics of youtube videos and channels using charts and graphs!",
+                    children="Analyze statistics of Youtube videos and channels using charts and graphs!",
                     className="header-description",
                 ),
             ],
@@ -192,7 +190,3 @@ def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
             ),
         ]
     return children
-
-
-if __name__ == "__main__":
-    app.run_server(debug=True)
