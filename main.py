@@ -38,7 +38,7 @@ def getData(numResults: int):
              'snippet.tags', 'snippet.categoryId',
              'statistics.viewCount', 'statistics.likeCount',
              'statistics.dislikeCount', 'statistics.commentCount']]
-    df.columns = ['Publish Date', 'Title', 'Description', 'Channel',
+    df.columns = ['Publish Date', 'Video Title', 'Description', 'Channel',
                   'Tags', 'Category ID', 'Views', 'Likes', 'Dislikes', 'Comments']
     df['Trending Rank'] = df.index+1
     df = df.convert_dtypes()
@@ -50,7 +50,7 @@ def getData(numResults: int):
 
 df = getData(50)
 plotType = {'Scatterplot': ['Views', 'Likes', 'Dislikes', 'Comments', 'Trending Rank'],
-            'Barplot': ['Title', 'Channel', 'Category ID']}
+            'Barplot': ['Video Title', 'Channel', 'Category ID'], 'Countplot': ['Channel', 'Category ID']}
 
 app.layout = html.Div(
     children=[
@@ -105,7 +105,7 @@ app.layout = html.Div(
                             options = [
                                 {"label": stat, "value": stat}
                                 for stat in df.columns[6:]
-                            ]
+                            ],
                         ),
                     ],
                     className="menu-item"
@@ -149,7 +149,9 @@ app.layout = html.Div(
     ]
 )
 @app.callback(
-    Output("x-axis", "options"),
+    [Output("x-axis", "options"),
+     Output("y-axis", "disabled"),
+     Output("y-axis", "value")],
     Input("graph-type", "value"),
 )
 def set_options(graph_type):
@@ -157,7 +159,8 @@ def set_options(graph_type):
         {"label": stat, "value": stat}
         for stat in plotType[graph_type]
     ]
-    return options
+    disabled, value = (True, None) if graph_type == 'Countplot' else (False, 'Views')
+    return options, disabled, value
 
 @app.callback(
     Output("chart", "figure"),
@@ -172,11 +175,15 @@ def set_options(graph_type):
 def update_charts(n_clicks, x_stat, y_stat, numvideos, graph_type):
     df = getData(numvideos)
     if graph_type == 'Scatterplot':
-        chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
-                           hover_name='Title', hover_data=['Channel'], color='Trending Rank', height=800)
+        chart = px.scatter(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
+                           hover_name='Video Title', hover_data=['Channel'], color='Trending Rank', height=800)
+    elif graph_type == 'Countplot':
+        chart = px.bar(df, x=df[x_stat].unique(), y=df[x_stat].value_counts(),
+                       title = f'Number of Videos by {x_stat} for the Top {numvideos} Trending Videos on Youtube',
+                       height=800, labels={'x': x_stat, 'y': 'Videos'})
     else:
-        chart = px.bar(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the {numvideos} Top Trending Videos on Youtube',
-                       hover_name='Title', hover_data=['Channel'], height=800)
+        chart = px.bar(df, x=x_stat, y=y_stat, title=f'{x_stat} vs {y_stat} for the Top {numvideos} Trending Videos on Youtube',
+                       hover_name='Video Title', hover_data=['Channel'], height=800)
     return chart
 
 
