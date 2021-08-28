@@ -41,11 +41,11 @@ body {
 
 .menu {
     height: 112px;
-    width: auto;
+    width: 1200px;
     display: flex;
     justify-content: safe center;
     padding-top: 24px;
-    margin: -80px 10% 0;
+    margin: -80px auto 0 auto;
     background-color: #FFFFFF;
     box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.18);
 }
