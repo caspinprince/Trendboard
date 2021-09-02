@@ -4,7 +4,7 @@ Trendboard is a web-based dashboard that analyzes trends in data from social med
 
 ## Table of contents
 * [General info](#general-info)
-* [Technologies](#technologies)
+* [Highlights](#highlights)
 * [Setup](#setup)
 
 ## General info
