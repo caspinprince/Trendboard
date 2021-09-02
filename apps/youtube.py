@@ -6,35 +6,11 @@ import plotly.express as px
 from dash.dependencies import Output, Input, State
 from io import BytesIO
 import base64
-from utilities.youtubedata import getData
-from wordcloud import WordCloud, STOPWORDS
+from utilities.youtubedata import getData, get_wordcloud
 from app import app
-
-external_stylesheets = [
-    {
-        "href": "https://fonts.googleapis.com/css2?"
-                "family=Lato:wght@400;700&display=swap",
-        "rel": "stylesheet",
-    },
-]
 
 plotType = {'Scatterplot': ['Views', 'Likes', 'Dislikes', 'Comments', 'Trending Rank'],
             'Barplot': ['Video Title', 'Channel', 'Category ID'], 'Countplot': ['Channel', 'Category ID'], 'Wordcloud':[]}
-
-def get_wordcloud(data):
-    all_words = ""
-    for taglist in data['Tags']:
-        if type(taglist) == float:
-            continue
-        text = set()
-        for item in taglist:
-            for word in item.split():
-                if word.encode().isalnum():
-                    text.add(word)
-        for x in text:
-            all_words += x + " "
-    wordcloud = WordCloud(width=1024, height=700, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
-    return wordcloud.to_image()
 
 layout = html.Div(
     children=[
@@ -112,7 +88,7 @@ layout = html.Div(
                 ),
                 html.Div(
                     children=[
-                        html.Button('Refresh', id='refresh', n_clicks=0, className="button"),
+                        html.Button('Search', id='search', n_clicks=0, className="button"),
                     ],
                     className="menu-item"
                 ),
@@ -122,7 +98,7 @@ layout = html.Div(
         html.Div(
             children=[
                 html.Div(
-                    id="chart",
+                    id="youtube-charts",
                     className="card",
                 ),
             ],
@@ -152,8 +128,8 @@ def set_options(graph_type):
     return options, x_disabled, y_disabled, y_value
 
 @app.callback(
-    Output("chart", "children"),
-    Input("refresh", "n_clicks"),
+    Output("youtube-charts", "children"),
+    Input("search", "n_clicks"),
     [
         State("x-axis", "value"),
         State("y-axis", "value"),

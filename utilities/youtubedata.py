@@ -2,9 +2,10 @@ import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 import pandas as pd
+from wordcloud import WordCloud, STOPWORDS
 
 load_dotenv()
-api_key = os.getenv('APIKEY')
+api_key = os.getenv('YOUTUBEAPIKEY')
 
 youtube = build('youtube', 'v3', developerKey=api_key)
 
@@ -31,3 +32,18 @@ def getData(numResults: int):
         'Likes', 'Dislikes', 'Comments']] = df[['Category ID', 'Views',
                                                 'Likes', 'Dislikes', 'Comments']].apply(pd.to_numeric)
     return df
+
+def get_wordcloud(data):
+    all_words = ""
+    for taglist in data['Tags']:
+        if type(taglist) == float:
+            continue
+        text = set()
+        for item in taglist:
+            for word in item.split():
+                if word.encode().isalnum():
+                    text.add(word)
+        for x in text:
+            all_words += x + " "
+    wordcloud = WordCloud(width=1024, height=700, background_color="white", stopwords = set(STOPWORDS)).generate(all_words)
+    return wordcloud.to_image()
