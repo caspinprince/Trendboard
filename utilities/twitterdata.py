@@ -14,17 +14,16 @@ auth = tw.OAuthHandler(consumer_key, consumer_secret)
 api = tw.API(auth)
 model = joblib.load('utilities/model/finalTwitterModel.pkl')
 
-def getTweets(topic, numItems):
+def getTweets(topic):
     tweets=[]
-    for tweet_info in tw.Cursor(api.search, q=topic, lang='en', tweet_mode='extended').items(500):
-        if 'retweeted_status' in dir(tweet_info):
-            tweets.append(tweet_info.retweeted_status.full_text)
+    results = api.search(q=topic, lang='en', tweet_mode='extended', count=250)
+    for tweet in results:
+        if 'retweeted_status' in dir(tweet):
+            tweets.append(tweet.retweeted_status.full_text)
         else:
-            tweets.append(tweet_info.full_text)
+            tweets.append(tweet.full_text)
     predictions = model.predict(tweets)
-    print(tweets)
-    print(predictions)
-    print(f"The topic: {topic} is {100*sum(predictions)/len(tweets)}% positive!")
+    return 100*sum(predictions)/len(tweets)
 
 def getTrendWordcloud(country):
     trendlist = api.trends_place(id=country)

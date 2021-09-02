@@ -53,6 +53,18 @@ layout = html.Div(
                 ),
                 html.Div(
                     children=[
+                        html.Div(children="Topic Search", className="menu-title"),
+                        dcc.Input(
+                            id="topic-search",
+                            type="text",
+                            placeholder="Input a topic here",
+                            className="input-box",
+                        ),
+                    ],
+                    className="menu-item"
+                ),
+                html.Div(
+                    children=[
                         html.Button('Search', id='search', n_clicks=0, className="button"),
                     ],
                     className="menu-item"
@@ -72,14 +84,28 @@ layout = html.Div(
     ]
 )
 @app.callback(
+    [Output("country-filter", "disabled"),
+     Output("topic-search", "disabled")],
+    Input("task-type", "value"),
+)
+def set_options(tasktype):
+    topic_disabled, country_disabled = False, False
+    if tasktype == 'Trending Topics':
+        topic_disabled = True
+    if tasktype == 'Average Sentiment':
+        country_disabled = True
+    return country_disabled, topic_disabled
+
+@app.callback(
     Output("twitter-charts", "children"),
     Input("search", "n_clicks"),
     [
         State("task-type", "value"),
-        State("country-filter", "value")
+        State("country-filter", "value"),
+        State("topic-search", "value")
     ],
 )
-def updated_charts(n_clicks, tasktype, country):
+def updated_charts(n_clicks, tasktype, country, topic):
     if tasktype == 'Trending Topics':
         countryDict = getCountries()
         img = BytesIO()
@@ -91,8 +117,12 @@ def updated_charts(n_clicks, tasktype, country):
                 src='data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode()),
             ),
         ]
-        return children
     else:
-        getTweets('python', 10)
+        percentage = getTweets(topic)
+        children = [
+            html.Div(f'The topic "{topic}" is {round(percentage, 2)}% positive!', className="photo-title"),
+        ]
+    return children
+
 
 
