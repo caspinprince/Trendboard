@@ -24,7 +24,7 @@ navbar = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src="/assets/logo.png", height="30px")),
-                        dbc.Col(dbc.NavbarBrand("SOCIAL MEDIA STATS DASHBOARD", className="ml-2")),
+                        dbc.Col(dbc.NavbarBrand("TRENDBOARD", className="ml-2")),
                     ],
                     align="center",
                     no_gutters=True,
@@ -74,4 +74,4 @@ def display_page(pathname):
         return twitter.layout
 
 if __name__ == '__main__':
-    app.run_server(host='127.0.0.1', debug=True)
+    app.run_server(host='0.0.0.0', port=8000, debug=True)

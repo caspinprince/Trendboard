@@ -12,7 +12,7 @@ layout = html.Div(
             children=[
                 html.H1(children="Twitter Statistic Dashboard", className="header-title",),
                 html.P(
-                    children="Analyze trending topics, tweets and users through the Twitter API!",
+                    children="Analyze trending topics and tweets through the Twitter API!",
                     className="header-description",
                 ),
             ],
@@ -25,7 +25,7 @@ layout = html.Div(
                         html.Div(children="Task Type", className="menu-title"),
                         dcc.Dropdown(
                             id="task-type",
-                            value="Views",
+                            value="Trending Topics",
                             clearable=False,
                             className="dropdown",
                             options = [
@@ -45,6 +45,7 @@ layout = html.Div(
                                 {"label": country, "value": country}
                                 for country in getCountries()
                             ],
+                            value='Canada',
                             clearable=False,
                             className="dropdown",
                         ),
