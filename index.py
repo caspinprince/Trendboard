@@ -3,12 +3,13 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app
-from apps import youtube, twitter
+from apps import youtube, twitter, home
 from utilities.model.TextCleaner import TextCleaner
 
 
 dropdown = dbc.DropdownMenu(
     children=[
+        dbc.DropdownMenuItem("Home", href="/"),
         dbc.DropdownMenuItem("Youtube Dashboard", href="/youtube"),
         dbc.DropdownMenuItem("Twitter Dashboard", href="/twitter"),
     ],
@@ -29,7 +30,7 @@ navbar = dbc.Navbar(
                     align="center",
                     no_gutters=True,
                 ),
-                href="/home",
+                href="/",
             ),
             dbc.NavbarToggler(id="navbar-toggler2"),
             dbc.Collapse(
@@ -72,6 +73,8 @@ def display_page(pathname):
         return youtube.layout
     elif pathname == '/twitter':
         return twitter.layout
+    else:
+        return home.layout
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8000, debug=True)
